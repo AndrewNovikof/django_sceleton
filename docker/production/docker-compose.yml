@@ -1,0 +1,47 @@
+version: '2'
+
+services:
+  db:
+    restart: always
+    image: postgres
+    environment:
+      POSTGRES_USER: 'assistant'
+      POSTGRES_PASSWORD: 'kid58-yt4sn3g0qnpjzpiq6qeo8u4hilz'
+    volumes:
+      - ./db/postgres:/var/lib/postgresql/data
+
+  cache:
+    restart: always
+    image: redis
+
+  manage:
+    image: 'andrewnovikoff/assistant:assistant-app'
+    environment:
+      - PRODUCTION=1
+    entrypoint: python3 /app/manage.py
+    volumes:
+      - ./logs/:/app/logs/
+
+  web:
+    restart: always
+    extends:
+      service: manage
+
+    entrypoint: bash /app/docker/production/web/service.web.sh
+    links:
+      - db
+      - cache
+
+  nginx:
+    restart: always
+    image: 'andrewnovikoff/assistant:assistant-app'
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - ./media/:/app/media/
+      - ./logs/nginx/:/var/log/nginx/
+      - ./docker/production/nginx/conf.d/nginx.conf:/etc/nginx/sites-enabled/assistant.com.conf
+    ports:
+      - 80:80
+
+    links:
+      - web

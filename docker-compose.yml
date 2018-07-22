@@ -1,0 +1,42 @@
+version: '2'
+
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: 'assistant'
+      POSTGRES_PASSWORD: 'kid58-yt4sn3g0qnpjzpiq6qeo8u4hilz'
+
+  cache:
+    image: memcached
+
+  assets:
+    build:
+      dockerfile: docker/development/Dockerfile.assets
+      context: assistant
+
+    volumes:
+      - ./project/assets:/app/project/assets/
+
+    command: npm run watch
+
+  manage:
+    build:
+      context: ./
+      dockerfile: docker/development/Dockerfile.web
+
+    entrypoint: python3 manage.py
+
+    volumes:
+      - ./:/code/
+
+  web:
+    extends:
+      service: manage
+    command: runserver 127.0.0.1:8081
+    ports:
+      - "8000:8000"
+    links:
+      - db
+      - cache
+      - assets
